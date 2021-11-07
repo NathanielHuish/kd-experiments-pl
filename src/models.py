@@ -9,7 +9,7 @@ class ModelFactory:
         }
     def get_model(self, model_name, **kwargs):
         model = resnet34(pretrained=False)
-        model.fc = nn.Linear(model.fc.in_features, out_features=100)
+        model.fc = nn.Linear(model.fc.in_features, out_features=10)
         return model
 
 class Resnet34:

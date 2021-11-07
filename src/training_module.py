@@ -141,8 +141,26 @@ class TrainingModule(pl.LightningModule):
         return (batches // effective_accum) * self.trainer.max_epochs
 
 class DistilledTrainingModule(TrainingModule):
-    def __init__(self, student_model_name, teacher_model_name, hparams):
-        super(DistilledTrainingModule, self).__init__(model_name=student_model_name, hparams=hparams)
+    def __init__(self, 
+                student_model_name, 
+                teacher_model_name, 
+                image_size,
+                num_classes,
+                lr,
+                momentum,
+                epochs,
+                weight_decay,
+                mixup,
+                pretrained=False
+    ):
+        super(DistilledTrainingModule, self).__init__()
+        self.lr = lr
+        self.image_size = image_size
+        self.num_classes = num_classes
+        self.weight_decay = weight_decay
+        self.momentum = momentum
+        self.epochs = epochs
+        self.mixup = mixup
         self._mse_loss = nn.MSELoss()
         self._teacher_model = self.create_model(self._hparams.teacher_model, pre_trained=True)
         self._teacher_model.load()
@@ -154,5 +172,4 @@ class DistilledTrainingModule(TrainingModule):
         y_hat_student = self.forward(images)
         y_hat_teacher = self._teacher_model.forward(images)
         loss = self._mse_loss(y_hat_student, y_hat_teacher)
-        return {'loss': loss,
-                'log': {'train_loss': loss}}
+        return {'loss': loss}

@@ -33,20 +33,61 @@ parser.add_argument('--num_workers', type=int, default=4)
 
 
 def main(args):
+    sweep_config = {
+        "name" : "first-distill",
+        "method" : "random",
+
+        "parameters" : {
+            "epochs" : {
+            "values" : [120]
+            },
+        "learning_rate" :{
+            "min": 0.0001,
+            "max": 0.05
+        },
+        "weight_decay":{
+            "min": 1e-5,
+            "max": 1e-3
+        },
+        "precision":{
+            "values" : [16, 32]
+        },
+        "mixup": {
+            "values" : [True, False]
+        }
+    }
+    }
+
     wandb.init(config=args)
+    sweep_id = wandb.sweep(sweep_config, project="cifar100-sweep")
     # Access all hyperparameter values through wandb.config
     config = wandb.config
-    training_module = TrainingModule(
-        model_name='resnet34',
-        image_size=args.image_size,
-        num_classes=args.num_classes,
-        pre_trained=args.pre_trained,
-        lr=config['lr'],
-        epochs=config['epochs'],
-        mixup=config['mixup'],
-        momentum=args.momentum,
-        weight_decay=config['weight_decay']
-    )
+    
+    if args.train_teacher:
+        training_module = TrainingModule(
+            model_name='resnet34',
+            image_size=args.image_size,
+            num_classes=args.num_classes,
+            pre_trained=args.pre_trained,
+            lr=config['lr'],
+            epochs=config['epochs'],
+            mixup=config['mixup'],
+            momentum=args.momentum,
+            weight_decay=config['weight_decay']
+        )
+    elif args.distill:
+        training_module = DistilledTrainingModule(
+            student_model_name='resnet34',
+            teacher_model_name='resnet34',
+            image_size=args.image_size,
+            num_classes=args.num_classes,
+            lr=config['lr'],
+            momentum=args.momentum,
+            epochs=config['epochs'],
+            weight_decay=config['weight_decay'],
+            mixup=config['mixup'],
+            pretrained=args.pre_trained
+        )
     lr_monitor = LearningRateMonitor(logging_interval="epoch")
     wandb_logger = WandbLogger()
     trainer = pl.Trainer.from_argparse_args(

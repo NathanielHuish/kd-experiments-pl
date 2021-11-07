@@ -2,6 +2,9 @@
 test/*
 logs/*
 data/*
+lightning_logs/*
+og_pruning_weights.pth
+pl_pruning_weights.pth
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
