@@ -30,10 +30,13 @@ class DataSetFactory:
 
 
 class CIFAR100DataModule(pl.LightningDataModule):
-    def __init__(self, batch_size):
+    def __init__(self, batch_size, num_workers, pin_memory):
         super().__init__()
         self.data_dir = DATASET_PATH
         self.batch_size = batch_size
+        self.num_workers = num_workers
+        self.pin_memory = pin_memory
+
     
     @property
     def num_classes(self):
@@ -42,7 +45,7 @@ class CIFAR100DataModule(pl.LightningDataModule):
     #def prepare_data():
         #datasets.CIFAR100.download()
 
-    def setup(stage):
+    def setup(self, stage):
         #process and split
         return 0
     
@@ -61,7 +64,9 @@ class CIFAR100DataModule(pl.LightningDataModule):
         
         loader = DataLoader(dataset=dataset,
                             batch_size=self.batch_size,
-                            shuffle=True)
+                            shuffle=True,
+                            num_workers=self.num_workers,
+                            pin_memory=self.pin_memory)
 
         return loader
 
@@ -79,7 +84,9 @@ class CIFAR100DataModule(pl.LightningDataModule):
         
         loader = DataLoader(dataset=dataset,
                             batch_size=self.batch_size,
-                            shuffle=False)
+                            shuffle=False,
+                            num_workers=self.num_workers,
+                            pin_memory=self.pin_memory)
         
         return loader
 
