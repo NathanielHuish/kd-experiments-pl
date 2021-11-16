@@ -6,7 +6,7 @@ import torch.nn.functional as F
 
 class DistillKL(nn.Module):
     """Distilling the Knowledge in a Neural Network"""
-    def __init__(self, T):
+    def __init__(self, T = 4.0): #'temperature for KD distillation'
         super(DistillKL, self).__init__()
         self.T = T
 

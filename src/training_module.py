@@ -5,6 +5,7 @@ from torch import nn
 import torchmetrics
 import torch_optimizer as optim
 import numpy as np
+from src.distillation import DistillationFactory
 import timm
 
 
@@ -147,10 +148,11 @@ class DistilledTrainingModule(TrainingModule):
                 image_size,
                 num_classes,
                 lr,
-                momentum,
+                momentum, #add alpha, beta (or kd loss, label loss)
                 epochs,
                 weight_decay,
                 mixup,
+                distill = 'kd',
                 pretrained=False
     ):
         super(DistilledTrainingModule, self).__init__()
@@ -162,6 +164,8 @@ class DistilledTrainingModule(TrainingModule):
         self.epochs = epochs
         self.mixup = mixup
         self._mse_loss = nn.MSELoss()
+        self.distill = distill
+        self.critereon = DistillationFactory(self.distill)
         self._teacher_model = self.create_model(self._hparams.teacher_model, pre_trained=True)
         self._teacher_model.load()
         for param in self._teacher_model.parameters():
@@ -171,5 +175,7 @@ class DistilledTrainingModule(TrainingModule):
         images, labels = batch
         y_hat_student = self.forward(images)
         y_hat_teacher = self._teacher_model.forward(images)
-        loss = self._mse_loss(y_hat_student, y_hat_teacher)
-        return {'loss': loss}
+        loss = self.critereon.distiller(y_hat_student, y_hat_teacher)
+        #loss = self._mse_loss(y_hat_student, y_hat_teacher)
+        return {'loss': loss} #alpha * kd_loss + beta * normal_loss
+

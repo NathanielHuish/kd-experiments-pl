@@ -14,7 +14,7 @@ import wandb
 
 parser = ArgumentParser()
 parser = TrainingModule.add_model_specific_args(parser)
-parser.add_argument('--train_teacher', type=bool, default=False)
+parser.add_argument('--train_teacher', type=bool, default=True)
 parser.add_argument('--distill', type=bool, default=False)
 parser.add_argument('--student_model', type=str, default='resnet34')
 parser.add_argument('--teacher_model', type=str, default='resnet34')
@@ -33,46 +33,20 @@ parser.add_argument('--num_workers', type=int, default=4)
 
 
 def main(args):
-    sweep_config = {
-        "name" : "first-distill",
-        "method" : "random",
-
-        "parameters" : {
-            "epochs" : {
-            "values" : [120]
-            },
-        "learning_rate" :{
-            "min": 0.0001,
-            "max": 0.05
-        },
-        "weight_decay":{
-            "min": 1e-5,
-            "max": 1e-3
-        },
-        "precision":{
-            "values" : [16, 32]
-        },
-        "mixup": {
-            "values" : [True, False]
-        }
-    }
-    }
-
     wandb.init(config=args)
-    sweep_id = wandb.sweep(sweep_config, project="cifar100-sweep")
     # Access all hyperparameter values through wandb.config
     config = wandb.config
     
     if args.train_teacher:
         training_module = TrainingModule(
             model_name='resnet34',
-            image_size=args.image_size,
-            num_classes=args.num_classes,
-            pre_trained=args.pre_trained,
+            image_size=32,
+            num_classes=10,
+            pre_trained=False,
             lr=config['lr'],
             epochs=config['epochs'],
-            mixup=config['mixup'],
-            momentum=args.momentum,
+            mixup=False,
+            momentum=config['momentum'],
             weight_decay=config['weight_decay']
         )
     elif args.distill:
@@ -81,8 +55,8 @@ def main(args):
             teacher_model_name='resnet34',
             image_size=args.image_size,
             num_classes=args.num_classes,
-            lr=config['lr'],
-            momentum=args.momentum,
+            lr=config['learning_rate'],
+            momentum=config['momentum'],
             epochs=config['epochs'],
             weight_decay=config['weight_decay'],
             mixup=config['mixup'],
@@ -97,7 +71,7 @@ def main(args):
         logger=wandb_logger,
         callbacks=[lr_monitor])
         
-    dm = CIFAR100DataModule(batch_size=args.batch_size, num_workers=4, pin_memory=True)
+    dm = CIFAR10DataModule(batch_size=args.batch_size, num_workers=4, pin_memory=True)
     trainer.fit(training_module, datamodule=dm)
 
 

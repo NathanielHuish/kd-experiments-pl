@@ -5,6 +5,9 @@ data/*
 lightning_logs/*
 og_pruning_weights.pth
 pl_pruning_weights.pth
+wandb/*
+*.csv
+sparsity_logger/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
