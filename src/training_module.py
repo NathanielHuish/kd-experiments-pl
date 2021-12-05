@@ -143,7 +143,7 @@ class TrainingModule(pl.LightningModule):
 
 class DistilledTrainingModule(TrainingModule):
     def __init__(self, 
-                student_model_name, 
+                model_name, 
                 teacher_model_name, 
                 image_size,
                 num_classes,
@@ -152,10 +152,24 @@ class DistilledTrainingModule(TrainingModule):
                 epochs,
                 weight_decay,
                 mixup,
-                distill = 'kd',
-                pretrained=False
+                soft_loss,
+                hard_loss,
+                distill,
+                pretrained=False,
     ):
-        super(DistilledTrainingModule, self).__init__()
+        super(DistilledTrainingModule, self).__init__(model_name=model_name, 
+                                                      image_size=image_size, 
+                                                      num_classes=num_classes, 
+                                                      lr=lr, 
+                                                      momentum=momentum, 
+                                                      epochs=epochs,
+                                                      weight_decay=weight_decay,
+                                                      mixup=mixup,
+                                                      pre_trained=pretrained)
+        self.model_name = model_name
+        self.teacher_model_name = teacher_model_name
+        self.soft_loss = soft_loss
+        self.hard_loss = hard_loss
         self.lr = lr
         self.image_size = image_size
         self.num_classes = num_classes
@@ -166,8 +180,8 @@ class DistilledTrainingModule(TrainingModule):
         self._mse_loss = nn.MSELoss()
         self.distill = distill
         self.critereon = DistillationFactory(self.distill)
-        self._teacher_model = self.create_model(self._hparams.teacher_model, pre_trained=True)
-        self._teacher_model.load()
+        self._teacher_model = self.create_model(self.teacher_model_name, pre_trained=False)
+        #self._teacher_model.load()
         for param in self._teacher_model.parameters():
             param.requires_grad = False
 
@@ -175,7 +189,13 @@ class DistilledTrainingModule(TrainingModule):
         images, labels = batch
         y_hat_student = self.forward(images)
         y_hat_teacher = self._teacher_model.forward(images)
-        loss = self.critereon.distiller(y_hat_student, y_hat_teacher)
-        #loss = self._mse_loss(y_hat_student, y_hat_teacher)
+
+        kd_loss = self.critereon.distiller(y_hat_student, y_hat_teacher)
+        self.log('kd_loss', kd_loss)
+
+        normal_loss = nn.CrossEntropyLoss()(y_hat_student, labels)
+        self.log('normal_loss', normal_loss)
+
+        loss = self.soft_loss * kd_loss + self.hard_loss * normal_loss
         return {'loss': loss} #alpha * kd_loss + beta * normal_loss
 

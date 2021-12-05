@@ -14,19 +14,20 @@ import wandb
 
 parser = ArgumentParser()
 parser = TrainingModule.add_model_specific_args(parser)
-parser.add_argument('--train_teacher', type=bool, default=True)
-parser.add_argument('--distill', type=bool, default=False)
-parser.add_argument('--student_model', type=str, default='resnet34')
-parser.add_argument('--teacher_model', type=str, default='resnet34')
+parser.add_argument('--train_teacher', type=bool, default=False)
+parser.add_argument('--student_model_name', type=str, default='resnet34')
+parser.add_argument('--teacher_model_name', type=str, default='resnet34')
 parser.add_argument('--prune_target', type=float, default=0.0)
 parser.add_argument('--model_name', type=str)
 parser.add_argument('--precision', type=int)
 
-
+parser.add_argument('--soft_loss', type=float)
+parser.add_argument('--hard_loss', type=float)
+parser.add_argument('--distill', type=str, default='kd')
 
 # trainer arguments
 parser.add_argument('--default_root_dir', type=str, default='logs')
-parser.add_argument('--epochs', type=int, default=240)
+parser.add_argument('--epochs', type=int, default=120)
 parser.add_argument('--gpus', type=int, default=(1 if th.cuda.is_available() else 0))
 parser.add_argument('--batch_size', type=int, default=2084)
 parser.add_argument('--num_workers', type=int, default=4)
@@ -49,18 +50,21 @@ def main(args):
             momentum=config['momentum'],
             weight_decay=config['weight_decay']
         )
-    elif args.distill:
+    else:
         training_module = DistilledTrainingModule(
-            student_model_name='resnet34',
-            teacher_model_name='resnet34',
-            image_size=args.image_size,
-            num_classes=args.num_classes,
-            lr=config['learning_rate'],
+            model_name=config['student_model_name'],
+            teacher_model_name=config['teacher_model_name'],
+            image_size=32,
+            num_classes=10,
+            lr=config['lr'],
             momentum=config['momentum'],
             epochs=config['epochs'],
             weight_decay=config['weight_decay'],
             mixup=config['mixup'],
-            pretrained=args.pre_trained
+            pretrained=args.pre_trained,
+            soft_loss=config['soft_loss'],
+            hard_loss=config['hard_loss'],
+            distill=config['distill']
         )
     lr_monitor = LearningRateMonitor(logging_interval="epoch")
     wandb_logger = WandbLogger()

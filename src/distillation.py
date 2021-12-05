@@ -1,12 +1,12 @@
-from distiller_zoo import KD
+from distiller_zoo.KD import DistillKL
 from torch import nn
 
 DISTILL_TYPES = {
-    'kd': KD,
+    'kd': DistillKL(),
     'mse': nn.MSELoss()
 }
 
 class DistillationFactory():
     def __init__(self, type):
         self.type = type
-        self.distiller = DISTILL_TYPES[type].cuda()
+        self.distiller = DISTILL_TYPES[type]
